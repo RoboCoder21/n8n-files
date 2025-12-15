@@ -1,0 +1,284 @@
+{
+  "name": "Zero2Launch - Auto Post Facebook",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3c29d014-d796-4b35-a625-142b20012e20",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e3450ad1-6308-4e67-aece-98fb6ef16636",
+              "name": "article",
+              "value": "={{ $json.results[0] }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "id": "b7fe01ac-3538-4fce-9b0c-ff2b088f9b97",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "https://newsdata.io/api/1/news?apikey=pub_84514b7c2343915bdc7ae0b8bb305889f58a4&q=AI&country=us&language=en&category=business,technology ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "fe229a03-9f02-4c60-95ee-7724cc5b3445",
+      "name": "Get News"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.zero2launch.com/generate-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "bf579b109a27d3bbd666863b440e5d02a5e488ad8bd922bd20854d749eae7787"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messages\": [\n    {\"role\":\"system\",\"content\":\"You are a professional news writer creating concise and engaging English-language content for social media. You write clearly and accurately based on reliable data. Your goal is to turn factual news items into 10-sentence Facebook posts that summarize the news, highlight key details, and engage the audience while remaining neutral and informative. Use a tone suitable for general readers—factual, readable, and slightly engaging, but not sensational.\"},\n    {\"role\":\"user\",\"content\":\"Write a 10-sentence Facebook post based on the following news article: \\n Title: {{ $json.article.title }} \\n Content: {{ $json.article.description }}\"}\n  ],\n  \"model\": \"openai\"\n} ",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "5fd87b57-6da3-4d3e-b7e5-e81cb3a08c9c",
+      "name": "Generate Facebook Post"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.zero2launch.com/generate-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "bf579b109a27d3bbd666863b440e5d02a5e488ad8bd922bd20854d749eae7787"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messages\": [\n    {\"role\":\"system\",\"content\":\"You are a helpful assistant.\"},\n    {\"role\":\"user\",\"content\":\"Based on the following Facebook post, extract 5 short and visually descriptive keywords that best represent the core imagery or scene of the news. These keywords will be used for generating an image, so focus on specific objects, environments, people, or actions that can be clearly visualized. Return the keywords separated by commas, without numbering or extra words. Facebook post: {{ $json.text }}\"}],\n  \"model\": \"openai\"\n} ",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "e8a494a9-214b-472c-995a-23ea8ece3c19",
+      "name": "Image Generation Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.zero2launch.com/download-image/data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "bf579b109a27d3bbd666863b440e5d02a5e488ad8bd922bd20854d749eae7787"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "name": "width",
+              "value": "1024"
+            },
+            {
+              "name": "height",
+              "value": "1024"
+            },
+            {
+              "name": "model",
+              "value": "flux"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "eecbe25b-4106-4533-9873-afde6cb9048c",
+      "name": "Generate a photo"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "me",
+        "edge": "photos",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "message",
+                "value": "={{ $('Generate Facebook Post').item.json.text }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        0
+      ],
+      "id": "e919da37-9cbc-4368-a657-afbb730649a1",
+      "name": "Post Article post on FB",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "h6l6IlGYRjIwKtmU",
+          "name": "zero2launch"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Generate Facebook Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get News": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Facebook Post": {
+      "main": [
+        [
+          {
+            "node": "Image Generation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Generation Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate a photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate a photo": {
+      "main": [
+        [
+          {
+            "node": "Post Article post on FB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b6e21ed5-1769-471d-b638-f9b25d374363",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cf068f147bd596e0edf0b85847b21e0c1cacf5ba11136ca4f5a70b7d82263505"
+  },
+  "id": "bVNTt5TrTxH4X3zO",
+  "tags": []
+}
